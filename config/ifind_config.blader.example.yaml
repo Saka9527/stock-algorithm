@@ -1,0 +1,68 @@
+# Blader 库 + iFinD 同步表（factor_data_wide / stock_daily_qfq）
+# 复制为 config/ifind_config.yaml 并填写 database.password
+# 或使用环境变量: BLADER_DB_USER / BLADER_DB_PASSWORD
+
+schema: blader
+
+database:
+  host: 117.25.133.3
+  port: 3306
+  name: blader
+  username: stock-dev
+  password: ""   # 建议留空，改用环境变量 BLADER_DB_PASSWORD
+  # 也可直接写 SQLAlchemy URL:
+  # url: "mysql+pymysql://user:pass@117.25.133.3:3306/blader?charset=utf8mb4"
+  # 或 JDBC（自动转换）:
+  # url: "jdbc:mysql://117.25.133.3:3306/blader?serverTimezone=GMT%2B8&..."
+
+tables:
+  daily: stock_daily_qfq
+  factor: factor_data_wide
+  factor_base: factor_base_info
+  calendar: stock_trading_day
+
+columns:
+  daily:
+    date: trade_date
+    code: stock_code
+    open: open
+    high: high
+    low: low
+    close: close
+    volume: volume
+  factor:
+    date: data_date
+    code: stock_code
+  factor_base:
+    factor_code: factor_code
+    factor_name: factor_name
+    factor_type: factor_type
+    factor_desc: factor_desc
+    ths_indicator: ths_indicator
+    sort_type: sort_type
+    is_valid: is_valid
+  calendar:
+    date: trade_date
+
+# 逻辑因子名 -> factor_base_info.factor_code（宽表列见 multi_factor/ifind/factor_wide.py）
+factor_mapping:
+  pe: PE_TTM
+  pb: PB_MRQ
+  roe: ROE_TTM
+
+sql_filters:
+  daily: ""
+  factor: ""
+  factor_base: "is_deleted = 0"
+  calendar: "is_deleted = 0"
+
+universe:
+  mode: factor_distinct   # 库内无指数成分表时，从因子表取股票池
+  index_code: "000300.SH"
+
+benchmark:
+  index_code: "000300.SH"
+  rq_code: "000300.XSHG"
+
+code_format: ths
+momentum_window: 20

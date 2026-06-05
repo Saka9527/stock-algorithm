@@ -1,0 +1,19 @@
+ 
+=== sync round test === 
+ 
+=== sync round === 
+login success!
+logout success!
+[factor] 批次 1，100 只
+login success!
+logout failed!
+login success!
+[factor] 50/300 完成，本批写入 12092 行，API 5507/40000
+logout success!
+[factor] 批次 2，100 只
+login success!
+[factor] 100/300 完成，本批写入 7223 行，API 5578/40000
+[factor] 150/300 完成，本批写入 43473 行，API 5630/40000
+logout success!
+[factor] 批次 3，100 只
+login success!

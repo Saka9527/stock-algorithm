@@ -1,0 +1,61 @@
+# 同花顺 iFinD 同步库配置（复制为 ifind_config.yaml 后按实际表名/字段修改）
+#
+# 支持:
+#   - SQL 数据库: sqlite / mysql / postgresql（database.url）
+#   - CSV 目录: 将 database.url 留空并设置 csv_dir
+#
+# 股票代码格式 code_format:
+#   ths  -> 600000.SH / 000001.SZ（iFinD 常用）
+#   rq   -> 600000.XSHG / 000001.XSHE（RQAlpha 常用，程序内会自动互转）
+
+database:
+  url: "sqlite:///data/ifind_sync.db"
+  # url: "mysql+pymysql://user:password@127.0.0.1:3306/ifind"
+
+# 若不用数据库，改为目录路径（内含 daily.csv / fundamental.csv / index_members.csv 等）
+csv_dir: ""
+
+tables:
+  daily: ifind_stock_daily
+  fundamental: ifind_stock_fundamental
+  index_members: ifind_index_members
+  index_daily: ifind_index_daily
+  calendar: ifind_trading_calendar
+
+columns:
+  daily:
+    date: trade_date
+    code: stock_code
+    open: open
+    high: high
+    low: low
+    close: close
+    volume: volume
+    amount: amount
+  fundamental:
+    date: trade_date
+    code: stock_code
+    pe: pe_ttm
+    pb: pb_lf
+    roe: roe_ttm
+  index_members:
+    date: trade_date
+    index_code: index_code
+    code: stock_code
+  index_daily:
+    date: trade_date
+    index_code: index_code
+    close: close
+  calendar:
+    date: trade_date
+
+universe:
+  index_code: "000300.SH"
+
+benchmark:
+  index_code: "000300.SH"
+  rq_code: "000300.XSHG"
+
+code_format: ths
+
+momentum_window: 20

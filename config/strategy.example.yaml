@@ -1,0 +1,44 @@
+# 多因子策略引擎示例配置
+# 使用: python run_backtest.py --source ifind --engine --strategy-config config/strategy.example.yaml
+
+start: "20251110"
+end: "20260530"
+ifind_config_path: "config/ifind_config.yaml"
+
+# 因子：等权 equal 或 custom 自定义权重
+weight_mode: equal
+factors:
+  - code: PE_TTM
+    weight: 0.25
+    ascending: false
+  - code: PB
+    weight: 0.25
+    ascending: false
+  - code: ROE_TTM
+    weight: 0.25
+    ascending: true
+  - code: MOMENTUM_20
+    weight: 0.25
+    ascending: true
+
+# 中性化（需库内有 MARKET_VALUE / 行业因子；无则自动跳过）
+industry_neutral: false
+cap_neutral: false
+
+# 股票池: all_a | csi300 | csi500 | csi1000
+universe: all_a
+top_n: 30
+rebalance_freq: daily   # daily | weekly | monthly
+
+exclude_st: true
+exclude_suspended: true
+exclude_new_days: 60
+exclude_limit: true
+
+initial_cash: 1000000
+buy_commission: 0.0003
+sell_commission: 0.0013
+slippage: 0.001
+
+run_single_factor_analysis: true
+output_dir: output/engine_report

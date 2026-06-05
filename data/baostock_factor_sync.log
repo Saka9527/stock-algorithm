@@ -1,0 +1,63 @@
+login success!
+logout success!
+2026-06-04T15:48:28 [factor-loop] round 1 pending=5333 wide=5651stocks/490094rows api=5685/40000 skip=199
+Traceback (most recent call last):
+  File "d:\PythonProject\stock_algorithm\scripts\run_baostock_factor_sync_loop.py", line 128, in <module>
+    main()
+  File "d:\PythonProject\stock_algorithm\scripts\run_baostock_factor_sync_loop.py", line 110, in main
+    _log(
+  File "d:\PythonProject\stock_algorithm\scripts\run_baostock_factor_sync_loop.py", line 32, in _log
+    with open(LOG_PATH, "a", encoding="utf-8") as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PermissionError: [Errno 13] Permission denied: 'D:\\PythonProject\\stock_algorithm\\data\\baostock_factor_sync.log'
+2026-06-04T15:53:05 [factor-loop] round 1 pending=5333 wide=5651stocks/490094rows api=5689/40000 skip=199
+2026-06-04T16:23:05 [factor-loop] round timeout (1800s), killed child
+2026-06-04T16:23:06 [factor-loop] round 1 done rc=-9 {"api_requests": 5858, "api_limit": 40000, "api_remaining": 34142, "wide_rows": 523387, "wide_stocks": 5651, "skip_codes": 199}
+2026-06-04T16:23:33 [factor-loop] round 2 pending=5333 wide=5651stocks/523387rows api=5858/40000 skip=199
+2026-06-04T16:53:33 [factor-loop] round timeout (1800s), killed child
+2026-06-04T16:53:34 [factor-loop] round 2 done rc=-9 {"api_requests": 6054, "api_limit": 40000, "api_remaining": 33946, "wide_rows": 540745, "wide_stocks": 5651, "skip_codes": 199}
+2026-06-04T16:53:55 [factor-loop] round 3 pending=5333 wide=5651stocks/540745rows api=6054/40000 skip=199
+2026-06-04T16:59:40 [factor-loop] round 1 pending=5333 wide=5651stocks/540745rows api=6227/40000 skip=199
+2026-06-04T17:07:02 [factor-loop] round 3 done rc=1 {"api_requests": 6468, "api_limit": 40000, "api_remaining": 33532, "wide_rows": 548428, "wide_stocks": 5651, "skip_codes": 199}
+2026-06-04T17:07:02 [factor-loop] round 1 done rc=1 {"api_requests": 6468, "api_limit": 40000, "api_remaining": 33532, "wide_rows": 548428, "wide_stocks": 5651, "skip_codes": 199}
+2026-06-04T17:07:19 [factor-loop] round 4 pending=5333 wide=5651stocks/548428rows api=6468/40000 skip=199
+2026-06-04T17:07:21 [factor-loop] round 2 pending=5333 wide=5651stocks/548428rows api=6468/40000 skip=199
+2026-06-04T17:37:19 [factor-loop] round timeout (1800s), killed child
+2026-06-04T17:37:21 [factor-loop] round 4 done rc=-9 {"api_requests": 6719, "api_limit": 40000, "api_remaining": 33281, "wide_rows": 570665, "wide_stocks": 5651, "skip_codes": 199}
+2026-06-04T17:37:21 [factor-loop] round timeout (1800s), killed child
+2026-06-04T17:37:23 [factor-loop] round 2 done rc=-9 {"api_requests": 6719, "api_limit": 40000, "api_remaining": 33281, "wide_rows": 570665, "wide_stocks": 5651, "skip_codes": 199}
+2026-06-04T17:37:59 [factor-loop] round 5 pending=5312 wide=5651stocks/570665rows api=6719/40000 skip=199
+2026-06-04T17:37:59 [factor-loop] round 3 pending=5312 wide=5651stocks/570665rows api=6719/40000 skip=199
+2026-06-04T18:07:59 [factor-loop] round timeout (1800s), killed child
+2026-06-04T18:07:59 [factor-loop] round timeout (1800s), killed child
+2026-06-04T18:08:00 [factor-loop] round 5 done rc=-9 {"api_requests": 6975, "api_limit": 40000, "api_remaining": 33025, "wide_rows": 587996, "wide_stocks": 5651, "skip_codes": 199}
+2026-06-04T18:08:00 [factor-loop] round 3 done rc=-9 {"api_requests": 6975, "api_limit": 40000, "api_remaining": 33025, "wide_rows": 587996, "wide_stocks": 5651, "skip_codes": 199}
+2026-06-04T18:08:28 [factor-loop] round 4 pending=5089 wide=5651stocks/587996rows api=6975/40000 skip=199
+2026-06-04T18:08:30 [factor-loop] round 6 pending=5089 wide=5651stocks/587996rows api=6975/40000 skip=199
+2026-06-04T18:10:25 [factor-loop] round 1 pending=5088 wide=5651stocks/587996rows api=7000/40000 skip=199
+2026-06-04T18:38:30 [factor-loop] round timeout (1800s), killed child
+2026-06-04T18:38:31 [factor-loop] round 6 done rc=-9 {"api_requests": 7025, "api_limit": 40000, "api_remaining": 32975, "wide_rows": 605381, "wide_stocks": 5651, "skip_codes": 199}
+2026-06-04T18:40:25 [factor-loop] round timeout (1800s), killed child
+2026-06-04T18:40:26 [factor-loop] round 1 done rc=-9 {"api_requests": 7026, "api_limit": 40000, "api_remaining": 32974, "wide_rows": 605381, "wide_stocks": 5651, "skip_codes": 199}
+2026-06-04T18:41:07 [factor-loop] round 2 pending=5065 wide=5651stocks/605381rows api=7026/40000 skip=199
+2026-06-04T19:11:07 [factor-loop] round timeout (1800s), killed child
+2026-06-04T19:11:08 [factor-loop] round 2 done rc=-9 {"api_requests": 7095, "api_limit": 40000, "api_remaining": 32905, "wide_rows": 634528, "wide_stocks": 5651, "skip_codes": 199}
+2026-06-04T19:11:46 [factor-loop] round 3 pending=5023 wide=5651stocks/634528rows api=7095/40000 skip=199
+2026-06-04T19:41:46 [factor-loop] round timeout (1800s), killed child
+2026-06-04T19:41:47 [factor-loop] round 3 done rc=-9 {"api_requests": 7127, "api_limit": 40000, "api_remaining": 32873, "wide_rows": 638027, "wide_stocks": 5651, "skip_codes": 199}
+2026-06-04T19:42:29 [factor-loop] round 4 pending=5018 wide=5651stocks/638027rows api=7127/40000 skip=199
+2026-06-04T20:12:29 [factor-loop] round timeout (1800s), killed child
+2026-06-04T20:12:30 [factor-loop] round 4 done rc=-9 {"api_requests": 7207, "api_limit": 40000, "api_remaining": 32793, "wide_rows": 672688, "wide_stocks": 5651, "skip_codes": 199}
+2026-06-04T20:13:02 [factor-loop] round 5 pending=4968 wide=5651stocks/672688rows api=7207/40000 skip=199
+2026-06-04T20:43:02 [factor-loop] round timeout (1800s), killed child
+2026-06-04T20:43:03 [factor-loop] round 5 done rc=-9 {"api_requests": 7285, "api_limit": 40000, "api_remaining": 32715, "wide_rows": 705329, "wide_stocks": 5651, "skip_codes": 199}
+2026-06-04T20:43:40 [factor-loop] round 6 pending=4921 wide=5651stocks/705329rows api=7285/40000 skip=199
+2026-06-04T21:13:40 [factor-loop] round timeout (1800s), killed child
+2026-06-04T21:13:42 [factor-loop] round 6 done rc=-9 {"api_requests": 7366, "api_limit": 40000, "api_remaining": 32634, "wide_rows": 739386, "wide_stocks": 5651, "skip_codes": 199}
+2026-06-04T21:14:13 [factor-loop] round 7 pending=4872 wide=5651stocks/739386rows api=7366/40000 skip=199
+2026-06-04T21:44:13 [factor-loop] round timeout (1800s), killed child
+2026-06-04T21:44:15 [factor-loop] round 7 done rc=-9 {"api_requests": 7459, "api_limit": 40000, "api_remaining": 32541, "wide_rows": 781030, "wide_stocks": 5651, "skip_codes": 199}
+2026-06-04T21:44:47 [factor-loop] round 8 pending=4812 wide=5651stocks/781030rows api=7459/40000 skip=199
+2026-06-04T22:14:47 [factor-loop] round timeout (1800s), killed child
+2026-06-04T22:14:50 [factor-loop] round 8 done rc=-9 {"api_requests": 7541, "api_limit": 40000, "api_remaining": 32459, "wide_rows": 814378, "wide_stocks": 5651, "skip_codes": 199}
+2026-06-04T22:15:38 [factor-loop] round 9 pending=4764 wide=5651stocks/814378rows api=7541/40000 skip=199

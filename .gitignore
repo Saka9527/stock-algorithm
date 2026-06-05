@@ -1,0 +1,8 @@
+output/
+data/ifind_sync.db
+config/ifind_config.yaml
+config/baostock_config.yaml
+__pycache__/
+*.pyc
+.env
+.rqdatac/

@@ -1,0 +1,38 @@
+USE blader;
+
+ALTER TABLE factor_performance_summary COMMENT = '因子绩效汇总表';
+ALTER TABLE factor_performance_summary MODIFY COLUMN id BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键';
+ALTER TABLE factor_performance_summary MODIFY COLUMN factor_code VARCHAR(64) NOT NULL COMMENT '因子编码，关联 factor_base_info.factor_code';
+ALTER TABLE factor_performance_summary MODIFY COLUMN start_date DATE NOT NULL COMMENT '分析区间起始日期（含）';
+ALTER TABLE factor_performance_summary MODIFY COLUMN end_date DATE NOT NULL COMMENT '分析区间结束日期（含）';
+ALTER TABLE factor_performance_summary MODIFY COLUMN period INT NOT NULL DEFAULT 1 COMMENT 'IC/分组收益前瞻持有期（交易日）';
+ALTER TABLE factor_performance_summary MODIFY COLUMN quantiles INT NOT NULL DEFAULT 5 COMMENT '分层回测分位组数，如 5 组';
+ALTER TABLE factor_performance_summary MODIFY COLUMN top_pct DECIMAL(6,4) NOT NULL DEFAULT 0.2000 COMMENT 'Top/Bottom 分组比例，如 0.2 表示各 20%';
+ALTER TABLE factor_performance_summary MODIFY COLUMN ic_mean DECIMAL(24,8) NULL COMMENT 'IC 均值（截面 Spearman 秩相关）';
+ALTER TABLE factor_performance_summary MODIFY COLUMN ic_std DECIMAL(24,8) NULL COMMENT 'IC 标准差';
+ALTER TABLE factor_performance_summary MODIFY COLUMN ic_ir DECIMAL(24,8) NULL COMMENT 'IC 信息比率 IC_mean / IC_std';
+ALTER TABLE factor_performance_summary MODIFY COLUMN win_rate DECIMAL(12,8) NULL COMMENT 'IC 胜率，IC>0 的交易日占比';
+ALTER TABLE factor_performance_summary MODIFY COLUMN positive_count INT NULL COMMENT 'IC 为正的有效交易日数';
+ALTER TABLE factor_performance_summary MODIFY COLUMN negative_count INT NULL COMMENT 'IC 为负的有效交易日数';
+ALTER TABLE factor_performance_summary MODIFY COLUMN total_count INT NULL COMMENT '有效 IC 交易日总数';
+ALTER TABLE factor_performance_summary MODIFY COLUMN sharpe_top_group DECIMAL(24,8) NULL COMMENT 'Top 分组日收益年化夏普';
+ALTER TABLE factor_performance_summary MODIFY COLUMN sharpe_bottom_group DECIMAL(24,8) NULL COMMENT 'Bottom 分组日收益年化夏普';
+ALTER TABLE factor_performance_summary MODIFY COLUMN sharpe_long_short DECIMAL(24,8) NULL COMMENT '多空组合（Top-Bottom）日收益年化夏普';
+ALTER TABLE factor_performance_summary MODIFY COLUMN data_start DATE NULL COMMENT '因子截面数据实际起始日';
+ALTER TABLE factor_performance_summary MODIFY COLUMN data_end DATE NULL COMMENT '因子截面数据实际结束日';
+ALTER TABLE factor_performance_summary MODIFY COLUMN stock_count_avg INT NULL COMMENT '分析区间内日均有效股票数';
+ALTER TABLE factor_performance_summary MODIFY COLUMN calc_version VARCHAR(32) DEFAULT 'v1' COMMENT '统计计算版本号';
+ALTER TABLE factor_performance_summary MODIFY COLUMN updated_at DATETIME NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间';
+ALTER TABLE factor_performance_summary MODIFY COLUMN is_deleted INT NULL DEFAULT 0 COMMENT '逻辑删除 0否 1是';
+
+ALTER TABLE factor_performance_series COMMENT = '因子绩效时序表';
+ALTER TABLE factor_performance_series MODIFY COLUMN id BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键';
+ALTER TABLE factor_performance_series MODIFY COLUMN factor_code VARCHAR(64) NOT NULL COMMENT '因子编码，关联 factor_base_info.factor_code';
+ALTER TABLE factor_performance_series MODIFY COLUMN start_date DATE NOT NULL COMMENT '分析区间起始日期（与 summary 一致）';
+ALTER TABLE factor_performance_series MODIFY COLUMN end_date DATE NOT NULL COMMENT '分析区间结束日期（与 summary 一致）';
+ALTER TABLE factor_performance_series MODIFY COLUMN period INT NOT NULL DEFAULT 1 COMMENT 'IC/收益前瞻持有期（交易日），与 summary.period 一致';
+ALTER TABLE factor_performance_series MODIFY COLUMN series_type VARCHAR(32) NOT NULL COMMENT '序列类型：ic=IC走势 group=Top/Bottom分组收益 quantile=分位组收益';
+ALTER TABLE factor_performance_series MODIFY COLUMN series_date DATE NOT NULL COMMENT '序列点位日期（交易日）';
+ALTER TABLE factor_performance_series MODIFY COLUMN payload_json JSON NOT NULL COMMENT '序列载荷 JSON，如 ic:{ic} group:{top_group,bottom_group,top_group_nav,...} quantile:{quantile,return,nav}';
+ALTER TABLE factor_performance_series MODIFY COLUMN updated_at DATETIME NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间';
+ALTER TABLE factor_performance_series MODIFY COLUMN is_deleted INT NULL DEFAULT 0 COMMENT '逻辑删除 0否 1是';
