@@ -157,7 +157,8 @@ class EngineBacktestCreate(BaseModel):
     cap_neutral: bool = Field(False, description="市值中性化（默认 MARKET_VALUE 因子）")
 
     universe: Literal["all_a", "csi300", "csi500", "csi1000"] = Field(
-        "all_a", description="股票池"
+        "all_a",
+        description="股票池：all_a 全市场；csi300/500/1000 使用指数成分（index_members 表 / BaoStock / 中证官网）",
     )
     top_n: int = Field(30, ge=1, le=200, description="持仓股票数")
     rebalance_freq: Literal["daily", "weekly", "monthly"] = Field(
@@ -264,3 +265,36 @@ class EngineBacktestResultData(BaseModel):
     output_dir: str
     factor_scores_shape: list[int] | None = None
     factor_analyses: dict | None = None
+
+
+class EngineBacktestValidate(EngineBacktestCreate):
+    """因子+回测全链路验证（参数与 run-sync 对齐，扩展自动区间与单因子快捷传参）。"""
+
+    factor_code: str | None = Field(
+        None,
+        description="单因子快捷参数；factors 为空时自动构建 [{code: factor_code}]",
+        examples=["ROE_TTM"],
+    )
+    use_full_data_range: bool = Field(
+        False,
+        description="为 true 时自动使用数据库日K与因子宽表交集的最近 N 年全量区间",
+    )
+    data_years: float = Field(3.0, gt=0, le=10, description="全量区间年数，默认 3 年")
+    output_subdir: str | None = Field(
+        None,
+        description="验证报告输出子目录，默认 output/validation/{factor_code}",
+    )
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "factor_code": "ROE_TTM",
+                    "use_full_data_range": True,
+                    "top_n": 20,
+                    "rebalance_freq": "monthly",
+                    "universe": "all_a",
+                }
+            ]
+        }
+    }

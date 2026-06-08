@@ -81,6 +81,7 @@ def run_engine_backtest(body: dict) -> dict[str, Any]:
     heatmap_ok, heatmap_note = monthly_heatmap_eligible(cfg.start, cfg.end)
     return {
         "run_id": result.get("run_id"),
+        "timings": result.get("timings"),
         "performance": perf,
         "return_overview": return_overview_from_perf(perf),
         "risk_metrics": risk_metrics_from_perf(perf),

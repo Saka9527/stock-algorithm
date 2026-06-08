@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import pickle
+import time
 from pathlib import Path
 from typing import Any
 
@@ -35,18 +36,25 @@ def run_engine_pipeline(cfg: StrategyConfig) -> dict[str, Any]:
     if not cfg.factors:
         cfg.factors = list(DEFAULT_FACTORS)
 
+    timings: dict[str, float] = {}
+    t0 = time.perf_counter()
+
     out_dir = Path(cfg.output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     print(">>> [1/5] 加载行情与交易日 ...")
+    t_step = time.perf_counter()
     hub = DataHub(cfg)
     hub.load_base()
+    timings["load_base_sec"] = round(time.perf_counter() - t_step, 2)
     print(f"    交易日 {len(hub.trading_dates)} 天, 股票 {hub.close.shape[1]} 只")
 
     factor_analyses: dict = {}
     if cfg.run_single_factor_analysis:
         print(">>> [2/5] 单因子分析 (IC / 分层) ...")
-        factor_analyses = analyze_all_factors(hub, cfg)
+        t_step = time.perf_counter()
+        factor_analyses = analyze_all_factors(hub, cfg, prefer_db=True)
+        timings["factor_analysis_sec"] = round(time.perf_counter() - t_step, 2)
         for code, rep in factor_analyses.items():
             if "error" in rep:
                 print(f"    {code}: 跳过 ({rep['error']})")
@@ -61,7 +69,9 @@ def run_engine_pipeline(cfg: StrategyConfig) -> dict[str, Any]:
             print(f"    {code}: IC均值={rep.get('summary', {}).get('ic_mean')}")
 
     print(">>> [3/5] 多因子合成 ...")
+    t_step = time.perf_counter()
     composite = build_composite_scores(hub, cfg)
+    timings["composite_sec"] = round(time.perf_counter() - t_step, 2)
     composite_path = out_dir / "composite_scores.pkl"
     with open(composite_path, "wb") as f:
         pickle.dump(composite, f)
@@ -71,7 +81,9 @@ def run_engine_pipeline(cfg: StrategyConfig) -> dict[str, Any]:
     print(f"    得分矩阵: {composite.shape}, 已保存 {composite_path}")
 
     print(">>> [4/5] 回测 (T+1 / 手续费 / 滑点) ...")
+    t_step = time.perf_counter()
     bt = run_backtest(composite, hub.returns, cfg, close=hub.close)
+    timings["backtest_sec"] = round(time.perf_counter() - t_step, 2)
     bt["benchmark_returns"] = hub.benchmark_returns
     perf = compute_performance(bt["strategy_returns"], hub.benchmark_returns)
     print(
@@ -81,6 +93,7 @@ def run_engine_pipeline(cfg: StrategyConfig) -> dict[str, Any]:
     )
 
     print(">>> [5/5] 导出报告与图表 ...")
+    t_step = time.perf_counter()
     save_backtest_outputs(bt, perf, out_dir, hub.benchmark_returns, cfg.start, cfg.end)
     cfg_summary = {
         "start": cfg.start,
@@ -122,8 +135,10 @@ def run_engine_pipeline(cfg: StrategyConfig) -> dict[str, Any]:
             print(f"    回测结果已落库 run_id={run_id}")
     except Exception as ex:
         print(f"    回测落库跳过: {ex}")
+    timings["report_persist_sec"] = round(time.perf_counter() - t_step, 2)
+    timings["total_sec"] = round(time.perf_counter() - t0, 2)
 
-    print(f">>> 完成。报告目录: {out_dir.resolve()}")
+    print(f">>> 完成。报告目录: {out_dir.resolve()}，耗时 {timings['total_sec']}s")
     return {
         "composite_scores": composite,
         "backtest": bt,
@@ -131,6 +146,7 @@ def run_engine_pipeline(cfg: StrategyConfig) -> dict[str, Any]:
         "factor_analyses": factor_analyses,
         "output_dir": out_dir,
         "run_id": run_id,
+        "timings": timings,
     }
 
 

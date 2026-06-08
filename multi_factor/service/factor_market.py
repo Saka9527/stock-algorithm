@@ -3,10 +3,10 @@
 
 from __future__ import annotations
 
-import time
 from typing import Any
 
 from multi_factor import config as project_config
+from multi_factor.cache.redis_cache import get_cache
 from multi_factor.ifind.config_loader import IFindConfig, load_ifind_config
 from multi_factor.ifind.factor_metrics import build_factor_report
 from multi_factor.ifind.factor_performance_jobs import (
@@ -15,29 +15,18 @@ from multi_factor.ifind.factor_performance_jobs import (
 )
 from multi_factor.ifind.provider import IFindDataProvider
 
-_CACHE: dict[str, tuple[float, dict]] = {}
-_CACHE_TTL = 3600  # 秒
-
-
 def _cache_key(
     factor_code: str, start: str, end: str, period: int, quantiles: int, top_pct: float
 ) -> str:
-    return f"{factor_code}|{start}|{end}|{period}|{quantiles}|{top_pct}"
+    return f"fp:report:{factor_code}|{start}|{end}|p{period}|q{quantiles}|t{top_pct}"
 
 
-def _get_cached_report(key: str) -> dict | None:
-    item = _CACHE.get(key)
-    if not item:
-        return None
-    ts, data = item
-    if time.time() - ts > _CACHE_TTL:
-        _CACHE.pop(key, None)
-        return None
-    return data
+def _get_cached_report(key: str, ttl: int = 3600) -> dict | None:
+    return get_cache().get_json(key)
 
 
-def _set_cached_report(key: str, data: dict) -> None:
-    _CACHE[key] = (time.time(), data)
+def _set_cached_report(key: str, data: dict, ttl: int) -> None:
+    get_cache().set_json(key, data, ttl=ttl)
 
 
 class FactorMarketService:
@@ -73,11 +62,7 @@ class FactorMarketService:
     def _default_dates(self, start: str | None, end: str | None) -> tuple[str, str]:
         if start and end:
             return start.replace("-", "")[:8], end.replace("-", "")[:8]
-        close = self.provider.load_daily_field("close", "20230101", "20991231")
-        if close.empty:
-            raise ValueError("无法从 stock_daily_qfq 推断日期区间")
-        s = close.index.min().strftime("%Y%m%d")
-        e = close.index.max().strftime("%Y%m%d")
+        s, e = self.provider.query_data_date_range()
         if start:
             s = start.replace("-", "")[:8]
         if end:
@@ -142,9 +127,10 @@ class FactorMarketService:
         """
         start, end = self._default_dates(start, end)
         code = factor_code.upper()
+        ttl = self.cfg.performance.cache_ttl_report
         key = _cache_key(code, start, end, period, quantiles, top_pct)
         if use_cache:
-            cached = _get_cached_report(key)
+            cached = _get_cached_report(key, ttl)
             if cached:
                 return cached
 
@@ -187,7 +173,7 @@ class FactorMarketService:
                         pass
 
         if use_cache:
-            _set_cached_report(key, report)
+            _set_cached_report(key, report, ttl)
         return report
 
     def list_factors_with_summary(

@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
 """回测与因子研究全局配置。"""
 
+import os
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-IFIND_CONFIG_PATH = PROJECT_ROOT / "config" / "ifind_config.yaml"
+IFIND_CONFIG_PATH = Path(
+    os.environ.get("IFIND_CONFIG_PATH") or (PROJECT_ROOT / "config" / "ifind_config.yaml")
+)
 IFIND_BLADER_EXAMPLE_PATH = PROJECT_ROOT / "config" / "ifind_config.blader.example.yaml"
 OUTPUT_DIR = PROJECT_ROOT / "output"
 FACTOR_SCORES_PATH = OUTPUT_DIR / "factor_scores.pkl"

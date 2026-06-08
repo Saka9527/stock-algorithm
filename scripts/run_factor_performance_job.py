@@ -25,6 +25,7 @@ def parse_args():
     p.add_argument("--quantiles", type=int, default=5, help="分层组数")
     p.add_argument("--top-pct", type=float, default=0.2, help="Top/Bottom 分组比例")
     p.add_argument("--ifind-config", default="", help="ifind 配置路径")
+    p.add_argument("--workers", type=int, default=0, help="并发数，0=配置默认")
     return p.parse_args()
 
 
@@ -40,6 +41,7 @@ def main():
         period=args.period,
         quantiles=args.quantiles,
         top_pct=args.top_pct,
+        workers=args.workers or None,
     )
     print(json.dumps(result, ensure_ascii=False, indent=2, default=str))
 

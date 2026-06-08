@@ -17,6 +17,7 @@ ADJ_QFQ = "2"
 
 # 估值/行情字段（不复权，与 BaoStock 日 K 指标一致）
 VALUATION_FIELDS = "date,code,close,peTTM,pbMRQ,psTTM,pcfNcfTTM"
+EXTRAS_FIELDS = "date,code,close,volume,turn,tradestatus,isST"
 ADJ_NONE = "3"
 
 
@@ -147,6 +148,53 @@ class BaostockClient:
         if last_exc:
             raise last_exc
         return pd.DataFrame()
+
+    def query_extras_k_data_plus(
+        self,
+        code: str,
+        start_date: str,
+        end_date: str,
+    ) -> pd.DataFrame:
+        """日 K 扩展字段：换手率、停牌、ST（不复权）。"""
+        last_exc: RuntimeError | None = None
+        for attempt in range(2):
+            rs = bs.query_history_k_data_plus(
+                code,
+                EXTRAS_FIELDS,
+                start_date=start_date,
+                end_date=end_date,
+                frequency="d",
+                adjustflag=ADJ_NONE,
+            )
+            try:
+                self._query(rs, retry=(attempt == 0))
+            except RuntimeError as exc:
+                last_exc = exc
+                if attempt == 0:
+                    continue
+                raise
+            rows = []
+            while rs.error_code == "0" and rs.next():
+                rows.append(rs.get_row_data())
+            fields = rs.fields if isinstance(rs.fields, list) else rs.fields.split(",")
+            if not rows:
+                return pd.DataFrame(columns=fields)
+            return pd.DataFrame(rows, columns=fields)
+        if last_exc:
+            raise last_exc
+        return pd.DataFrame()
+
+    def query_profit_shares(self, code: str, year: int) -> pd.DataFrame:
+        """季度股本：totalShare / liqaShare（股）。"""
+        rs = bs.query_profit_data(code, str(year))
+        self._query(rs)
+        rows = []
+        while rs.error_code == "0" and rs.next():
+            rows.append(rs.get_row_data())
+        fields = rs.fields if isinstance(rs.fields, list) else rs.fields.split(",")
+        if not rows:
+            return pd.DataFrame(columns=fields)
+        return pd.DataFrame(rows, columns=fields)
 
     def query_valuation_k_data_plus(
         self,

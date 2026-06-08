@@ -20,6 +20,7 @@ tables:
   factor: factor_data_wide
   factor_base: factor_base_info
   calendar: stock_trading_day
+  index_members: index_members
 
 columns:
   daily:
@@ -43,6 +44,10 @@ columns:
     is_valid: is_valid
   calendar:
     date: trade_date
+  index_members:
+    date: trade_date
+    index_code: index_code
+    code: stock_code
 
 # 逻辑因子名 -> factor_base_info.factor_code（宽表列见 multi_factor/ifind/factor_wide.py）
 factor_mapping:
@@ -57,7 +62,7 @@ sql_filters:
   calendar: "is_deleted = 0"
 
 universe:
-  mode: factor_distinct   # 库内无指数成分表时，从因子表取股票池
+  mode: index_members     # index_members | factor_distinct | daily_distinct
   index_code: "000300.SH"
 
 benchmark:
@@ -66,3 +71,38 @@ benchmark:
 
 code_format: ths
 momentum_window: 20
+
+# Redis 缓存（因子报告、行情/因子面板）
+redis:
+  enabled: true
+  host: 127.0.0.1
+  port: 6379
+  password: ""
+  database: 1
+  key_prefix: "stock_algo:"
+  socket_timeout: 5
+
+# 因子绩效 / 回测预热
+performance:
+  default_years: 3.0
+  cache_ttl_report: 3600      # 因子报告缓存秒
+  cache_ttl_panel: 86400      # 行情/因子面板缓存秒
+  batch_workers: 4            # 因子绩效批量并发
+  series_chunk_size: 5000     # 时序落库批量大小
+
+# 每日行情 Parquet 归档（加速 3 年全量 load_base）
+parquet_archive:
+  enabled: true
+  dir: data/parquet/market
+  prefer_read: true
+  min_coverage: 0.95
+  use_monthly_wide: true
+  read_workers: 8
+  bundle_cache_ttl: 3600
+  bundle_use_redis: false
+  factor:
+    enabled: true
+    dir: data/parquet/factor
+    prefer_read: true
+    min_coverage: 0.95
+    use_redis: false

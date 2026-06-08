@@ -1,0 +1,97 @@
+# Docker 部署配置模板（密钥通过环境变量注入，勿写明文密码）
+schema: blader
+
+database:
+  host: 117.25.133.3
+  port: 3306
+  name: blader
+  username: stock-dev
+  password: ""
+
+tables:
+  daily: stock_daily_qfq
+  factor: factor_data_wide
+  factor_base: factor_base_info
+  calendar: stock_trading_day
+  index_members: index_members
+
+columns:
+  daily:
+    date: trade_date
+    code: stock_code
+    open: open
+    high: high
+    low: low
+    close: close
+    volume: volume
+  factor:
+    date: data_date
+    code: stock_code
+  factor_base:
+    factor_code: factor_code
+    factor_name: factor_name
+    factor_type: factor_type
+    factor_desc: factor_desc
+    ths_indicator: ths_indicator
+    sort_type: sort_type
+    is_valid: is_valid
+  calendar:
+    date: trade_date
+  index_members:
+    date: trade_date
+    index_code: index_code
+    code: stock_code
+
+factor_mapping:
+  pe: PE_TTM
+  pb: PB_MRQ
+  roe: ROE_TTM
+
+sql_filters:
+  daily: ""
+  factor: ""
+  factor_base: "is_deleted = 0"
+  calendar: "is_deleted = 0"
+
+universe:
+  mode: index_members
+  index_code: "000300.SH"
+
+benchmark:
+  index_code: "000300.SH"
+  rq_code: "000300.XSHG"
+
+code_format: ths
+momentum_window: 20
+
+redis:
+  enabled: true
+  host: 117.25.133.3
+  port: 6379
+  password: ""
+  database: 1
+  key_prefix: "stock_algo:"
+  socket_timeout: 5
+
+performance:
+  default_years: 3.0
+  cache_ttl_report: 3600
+  cache_ttl_panel: 86400
+  batch_workers: 4
+  series_chunk_size: 5000
+
+parquet_archive:
+  enabled: true
+  dir: data/parquet/market
+  prefer_read: true
+  min_coverage: 0.95
+  use_monthly_wide: true
+  read_workers: 8
+  bundle_cache_ttl: 3600
+  bundle_use_redis: false
+  factor:
+    enabled: true
+    dir: data/parquet/factor
+    prefer_read: true
+    min_coverage: 0.95
+    use_redis: false

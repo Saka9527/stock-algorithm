@@ -24,10 +24,11 @@ from api.schemas import (
     ApiResponse,
     BacktestJobCreate,
     EngineBacktestCreate,
+    EngineBacktestValidate,
     FactorPerformanceWarmupCreate,
     JobStatusResponse,
 )
-from multi_factor.service import engine_service, runner
+from multi_factor.service import backtest_validation, engine_service, nightly_jobs, runner
 from multi_factor.service.factor_market import get_factor_market_service
 from multi_factor.service.jobs import job_manager
 from multi_factor.service.runner import BacktestRequest
@@ -96,6 +97,12 @@ def ok(data=None, message: str = "ok") -> ApiResponse:
 # =============================================================================
 # 系统
 # =============================================================================
+
+
+@app.get("/health/live", include_in_schema=False)
+def health_live():
+    """容器探活（无需鉴权）。"""
+    return {"status": "ok"}
 
 
 @app.get(
@@ -549,6 +556,68 @@ def factor_raw_values(
 def engine_backtest_sync(body: EngineBacktestCreate, _: None = Depends(verify_api_key)):
     try:
         return ok(engine_service.run_engine_backtest(body.model_dump(exclude_none=True)))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+@app.post(
+    "/api/v1/engine/backtest/validate",
+    response_model=ApiResponse,
+    tags=["多因子引擎", "回测验证"],
+    summary="因子+回测全链路验证",
+    description=(
+        "参数与 run-sync 对齐，支持 factor_code 单因子快捷传参、"
+        "use_full_data_range 自动使用库内全量 3 年区间；"
+        "执行回测并校验落库、报告文件与各项分析数据。"
+    ),
+)
+def engine_backtest_validate(body: EngineBacktestValidate, _: None = Depends(verify_api_key)):
+    try:
+        result = backtest_validation.validate_backtest_chain(
+            body.model_dump(exclude_none=True)
+        )
+        return ok(result, message="validation passed" if result["ok"] else "validation failed")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+@app.get(
+    "/api/v1/engine/backtest/data-range",
+    response_model=ApiResponse,
+    tags=["多因子引擎", "回测验证"],
+    summary="数据库可用回测区间",
+    description="返回日K与因子宽表交集区间，默认最近 3 年。",
+)
+def engine_backtest_data_range(
+    years: float = Query(3.0, gt=0, le=10),
+    _: None = Depends(verify_api_key),
+):
+    try:
+        return ok(backtest_validation.query_db_data_range(years=years))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+@app.post(
+    "/api/v1/pipeline/nightly/run",
+    response_model=ApiResponse,
+    tags=["流水线", "定时任务"],
+    summary="执行凌晨预热流水线",
+    description="因子绩效批量落库 + Redis 水位；可选回测预热。生产环境建议用 scripts/run_nightly_pipeline.py 守护。",
+)
+def pipeline_nightly_run(
+    skip_backtest_warmup: bool = Query(True, description="是否跳过回测预热"),
+    workers: int = Query(0, ge=0, le=16, description="因子绩效并发，0=配置默认"),
+    data_years: float = Query(0, ge=0, le=10, description="数据年数，0=配置默认"),
+    _: None = Depends(verify_api_key),
+):
+    try:
+        result = nightly_jobs.run_nightly_pipeline(
+            years=data_years or None,
+            workers=workers or None,
+            warmup_backtest=not skip_backtest_warmup,
+        )
+        return ok(result)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
 

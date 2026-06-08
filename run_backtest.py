@@ -8,7 +8,6 @@
   demo     - RQAlpha Bundle 演示动量
 
 iFinD 配置: config/ifind_config.yaml（参考 config/ifind_config.example.yaml）
-示例库:   python scripts/init_ifind_sample_db.py
 
 RQAlpha Bundle（ifind + RQAlpha 撮合时）:
   rqalpha download-bundle --confirm

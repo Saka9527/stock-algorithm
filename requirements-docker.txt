@@ -1,0 +1,13 @@
+# Docker / 生产 API 镜像依赖（Blader + FastAPI，不含 RQAlpha/RQDatac）
+pandas>=1.5.0
+numpy>=1.23.0,<2.0.0
+matplotlib>=3.5.0
+openpyxl>=3.0.0
+pyyaml>=6.0
+sqlalchemy>=2.0.0
+pymysql>=1.1.0
+fastapi>=0.110.0
+uvicorn[standard]>=0.27.0
+pydantic>=2.0.0
+redis>=5.0.0
+pyarrow>=14.0.0

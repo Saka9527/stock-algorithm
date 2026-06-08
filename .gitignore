@@ -2,6 +2,7 @@ output/
 data/ifind_sync.db
 config/ifind_config.yaml
 config/baostock_config.yaml
+deploy/docker/.env
 __pycache__/
 *.pyc
 .env

@@ -12,17 +12,6 @@ from multi_factor.engine.strategy_config import FactorSpec, StrategyConfig
 from multi_factor.ifind.factor_metrics import _sort_ascending
 
 
-def _cross_section_rank(s: pd.Series, ascending: bool) -> pd.Series:
-    """截面百分位排名 [0,1]，越大越好。"""
-    valid = s.dropna()
-    if valid.empty:
-        return s
-    ranks = valid.rank(ascending=ascending, pct=True, method="average")
-    out = pd.Series(index=s.index, dtype=float)
-    out.loc[ranks.index] = ranks
-    return out
-
-
 def build_composite_scores(
     hub: DataHub,
     cfg: StrategyConfig,
@@ -81,7 +70,7 @@ def build_composite_scores(
                 cfg.industry_neutral and industry_panel is not None,
             )
 
-        ranked = panel.apply(lambda row: _cross_section_rank(row, ascending), axis=1)
+        ranked = panel.rank(axis=1, ascending=ascending, pct=True, method="average")
         composite = composite.add(ranked * w, fill_value=0.0)
 
     composite = composite.where(tradeable)

@@ -29,17 +29,23 @@ class DataHub:
         """加载交易日、收盘价、收益率、成交量、基准。"""
         s, e = self.cfg.start, self.cfg.end
         self.trading_dates = self.provider.get_trading_dates(s, e)
-        self.close = self.provider.load_daily_field("close", s, e)
-        self.returns = self.provider.get_daily_returns(s, e)
+        bundle = self.provider.load_daily_bundle(s, e)
+        self.close = bundle.get("close")
+        if self.close is None or self.close.empty:
+            self.close = self.provider.load_daily_close(s, e)
+        self.returns = self.close.pct_change(fill_method=None)
         self.returns = self.returns.reindex(self.trading_dates).fillna(0.0)
 
         try:
-            self.volume = self.provider.load_daily_field("volume", s, e)
+            vol = bundle.get("volume")
+            self.volume = vol if vol is not None and not vol.empty else self.provider.load_daily_field("volume", s, e)
             self.volume = self.volume.reindex(self.trading_dates)
         except Exception:
             self.volume = None
 
-        self.benchmark_returns = self.provider.get_benchmark_returns(s, e)
+        self.benchmark_returns = self.provider.get_benchmark_returns(
+            s, e, market_returns=self.returns
+        )
         self.benchmark_returns = self.benchmark_returns.reindex(self.trading_dates).fillna(0.0)
 
     def factor_meta_map(self) -> dict[str, dict]:
@@ -84,7 +90,7 @@ class DataHub:
     def universe_mask(self) -> pd.DataFrame:
         """
         每日可投资标的布尔矩阵（index=日期, columns=股票）。
-        all_a：有收盘价；指数池：有成分记录或全市场近似。
+        all_a：有收盘价；csi300/500/1000：指数成分（DB / BaoStock / 中证官网）。
         """
         mask = self.close.notna().copy()
         pool = self.cfg.universe
@@ -95,44 +101,16 @@ class DataHub:
         if not index_code:
             return mask
 
-        # 若配置了 index_members 表则按日过滤
-        if "index_members" in self.ifind.tables:
-            members = self._load_index_members_daily(index_code)
-            for dt in mask.index:
-                if dt in members.index:
-                    allowed = members.loc[dt]
-                    mask.loc[dt] = mask.loc[dt] & allowed
-            return mask
+        from multi_factor.ifind.index_members import load_index_members_mask
 
-        # 无成分表：用当日有行情的全部股票（文档说明需补成分表）
-        return mask
-
-    def _load_index_members_daily(self, index_code: str) -> pd.DataFrame:
-        """成分股日频布尔矩阵（前向填充）。"""
-        c = self.ifind.cols("index_members")
-        t = self.ifind.table("index_members")
-        sql = f"""
-        SELECT `{c.col('date')}` AS dt, `{c.col('code')}` AS sym
-        FROM `{t}`
-        WHERE `{c.col('index_code')}` = :idx
-        """
-        extra = self.ifind.filter_sql("index_members")
-        if extra:
-            sql += f" AND ({extra})"
-        from multi_factor.ifind.provider import _sql_date
-
-        df = self.provider._query_sql(
-            sql,
-            params={"idx": index_code},
+        members = load_index_members_mask(
+            self.provider,
+            index_code,
+            self.trading_dates,
+            start=self.cfg.start,
+            end=self.cfg.end,
         )
-        from multi_factor.ifind.code_convert import normalize_codes
-
-        df["dt"] = pd.to_datetime(df["dt"]).dt.normalize()
-        df["sym"] = normalize_codes(df["sym"].astype(str), "rq")
-        dates = self.trading_dates
-        cols = sorted(df["sym"].unique())
-        out = pd.DataFrame(False, index=dates, columns=cols)
-        for dt, grp in df.groupby("dt"):
-            if dt in out.index:
-                out.loc[dt, grp["sym"].tolist()] = True
-        return out.ffill().fillna(False)
+        if members is None or members.empty or not members.any().any():
+            return mask
+        members = members.reindex(columns=mask.columns, fill_value=False)
+        return mask & members

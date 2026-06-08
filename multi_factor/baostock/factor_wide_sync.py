@@ -20,6 +20,75 @@ from multi_factor.ifind.config_loader import load_ifind_config
 from multi_factor.ifind.factor_wide import upsert_wide_baostock_overwrite
 
 
+def ensure_factor_wide_schema(engine: Engine, table: str) -> None:
+    """确保 factor_data_wide 列与 BaoStock 同步游标表存在（幂等）。"""
+
+    def _has_column(conn, col: str) -> bool:
+        rows = conn.execute(text(f"SHOW COLUMNS FROM `{table}` LIKE :c"), {"c": col}).fetchall()
+        return bool(rows)
+
+    with engine.begin() as conn:
+        if not _has_column(conn, "pb_mrq"):
+            conn.execute(
+                text(
+                    f"ALTER TABLE `{table}` ADD COLUMN pb_mrq DECIMAL(18,6) NULL "
+                    f"COMMENT '市净率 MRQ' AFTER pe_ttm"
+                )
+            )
+        if not _has_column(conn, "ps_ttm"):
+            conn.execute(
+                text(
+                    f"ALTER TABLE `{table}` ADD COLUMN ps_ttm DECIMAL(18,6) NULL "
+                    f"COMMENT '市销率 TTM' AFTER pb_mrq"
+                )
+            )
+        if not _has_column(conn, "pcf_ncf_ttm"):
+            conn.execute(
+                text(
+                    f"ALTER TABLE `{table}` ADD COLUMN pcf_ncf_ttm DECIMAL(18,6) NULL "
+                    f"COMMENT '市现率 TTM' AFTER ps_ttm"
+                )
+            )
+        if _has_column(conn, "pb"):
+            conn.execute(
+                text(
+                    f"""
+                    UPDATE `{table}`
+                    SET pb_mrq = COALESCE(
+                        CAST(JSON_UNQUOTE(JSON_EXTRACT(factor_ext_json, '$.PB_MRQ')) AS DECIMAL(18,6)),
+                        pb_mrq,
+                        pb
+                    )
+                    WHERE pb_mrq IS NULL
+                       OR JSON_EXTRACT(factor_ext_json, '$.PB_MRQ') IS NOT NULL
+                       OR pb IS NOT NULL
+                    """
+                )
+            )
+            conn.execute(
+                text(
+                    f"""
+                    UPDATE `{table}`
+                    SET factor_ext_json = JSON_REMOVE(factor_ext_json, '$.PB_MRQ')
+                    WHERE JSON_EXTRACT(factor_ext_json, '$.PB_MRQ') IS NOT NULL
+                    """
+                )
+            )
+            conn.execute(text(f"ALTER TABLE `{table}` DROP COLUMN pb"))
+        conn.execute(
+            text(
+                """
+                CREATE TABLE IF NOT EXISTS factor_wide_sync_state (
+                    stock_code VARCHAR(12) PRIMARY KEY,
+                    last_trade_date DATE NULL,
+                    row_count INT DEFAULT 0,
+                    updated_at DATETIME NULL
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                """
+            )
+        )
+
+
 @dataclass
 class FactorWideSyncResult(SyncResult):
     pass
@@ -37,6 +106,7 @@ class BaostockFactorWideSync:
         self.store = BaostockStore(self.bs_cfg)
         self.engine: Engine = create_engine(self.ifind_cfg.db_url, pool_pre_ping=True)
         self.wide_table = self.ifind_cfg.table("factor")
+        ensure_factor_wide_schema(self.engine, self.wide_table)
 
     def _date_window(self, end_date: str | None = None) -> tuple[str, str]:
         end = end_date or date.today().isoformat()

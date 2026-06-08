@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -127,7 +128,7 @@ class FactorPerformanceStorage:
         with self.engine.begin() as conn:
             conn.execute(text(sql), params)
 
-    def upsert_series_rows(self, rows: list[dict], chunk_size: int = 2000) -> int:
+    def upsert_series_rows(self, rows: list[dict], chunk_size: int = 5000) -> int:
         if not rows:
             return 0
         sql = """
@@ -426,13 +427,14 @@ class FactorPerformanceJobRunner:
         period: int = 1,
         quantiles: int = 5,
         top_pct: float = 0.2,
+        returns: pd.DataFrame | None = None,
     ) -> dict[str, Any]:
         factor_code = factor_code.upper()
         meta = self.provider.get_factor_meta(factor_code) or {
             "factor_code": factor_code,
             "sort_type": "desc",
         }
-        close = self.provider.get_daily_returns(start, end)
+        close = returns if returns is not None else self.provider.get_daily_returns(start, end)
         panel = self.provider.load_factor_panel_by_code(factor_code, start, end)
         if panel.empty:
             panel = self.provider.load_factor_panel_by_code(factor_code, "20200101", end)
@@ -463,7 +465,9 @@ class FactorPerformanceJobRunner:
             summary=report.get("summary", {}),
         )
         series_rows = self._series_rows(factor_code, start, end, period, report)
-        n = self.storage.upsert_series_rows(series_rows)
+        n = self.storage.upsert_series_rows(
+            series_rows, chunk_size=self.cfg.performance.series_chunk_size
+        )
         return {
             "factor_code": factor_code,
             "summary": report.get("summary", {}),
@@ -480,17 +484,41 @@ class FactorPerformanceJobRunner:
         period: int = 1,
         quantiles: int = 5,
         top_pct: float = 0.2,
+        workers: int | None = None,
     ) -> dict[str, Any]:
         self.storage.ensure_tables()
         if not factor_codes:
             factor_codes = [m["factor_code"] for m in self.provider.list_factor_base_info()]
-        out = {"success": [], "failed": []}
-        for code in factor_codes:
-            try:
-                out["success"].append(
-                    self.run_one(code, start, end, period=period, quantiles=quantiles, top_pct=top_pct)
-                )
-            except Exception as ex:
-                out["failed"].append({"factor_code": code, "error": str(ex)})
+        workers = max(1, int(workers or self.cfg.performance.batch_workers))
+        shared_returns = self.provider.get_daily_returns(start, end)
+        out = {"success": [], "failed": [], "workers": workers}
+
+        def _task(code: str) -> dict[str, Any]:
+            return self.run_one(
+                code,
+                start,
+                end,
+                period=period,
+                quantiles=quantiles,
+                top_pct=top_pct,
+                returns=shared_returns,
+            )
+
+        if workers <= 1:
+            for code in factor_codes:
+                try:
+                    out["success"].append(_task(code))
+                except Exception as ex:
+                    out["failed"].append({"factor_code": code, "error": str(ex)})
+            return out
+
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            futures = {pool.submit(_task, code): code for code in factor_codes}
+            for fut in as_completed(futures):
+                code = futures[fut]
+                try:
+                    out["success"].append(fut.result())
+                except Exception as ex:
+                    out["failed"].append({"factor_code": code, "error": str(ex)})
         return out
 

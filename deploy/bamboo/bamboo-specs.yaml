@@ -1,0 +1,54 @@
+# Bamboo Specs 示例（按贵司 Bamboo 版本调整为 Plan 或 Deployment）
+# 文档: https://confluence.atlassian.com/bamboo/bamboo-specs-894743906.html
+
+---
+version: 2
+plan:
+  project-key: STOCK
+  key: ALGOAPI
+  name: stock-algorithm-api
+  description: 多因子回测 API Docker 构建与部署
+
+stages:
+  - Build Docker Image:
+      jobs:
+        - Build and Push
+  - Deploy to Server:
+      jobs:
+        - Remote Deploy
+
+Build and Push:
+  tasks:
+    - script:
+        interpreter: SHELL
+        scripts:
+          - chmod +x deploy/bamboo/build-and-push.sh
+          - export IMAGE_TAG="v${bamboo.buildNumber}"
+          - ./deploy/bamboo/build-and-push.sh
+  artifacts:
+    - name: image-properties
+      location: .
+      pattern: image.properties
+      shared: true
+      required: true
+
+Remote Deploy:
+  tasks:
+    - script:
+        interpreter: SHELL
+        scripts:
+          - chmod +x deploy/bamboo/deploy-remote.sh
+          - export IMAGE_TAG="v${bamboo.buildNumber}"
+          - ./deploy/bamboo/deploy-remote.sh
+  requirements:
+    - system.docker.executable
+
+variables:
+  DOCKER_REGISTRY: 10.8.0.1:90
+  IMAGE_NAME: stock-service-api/stock-algorithm
+  DEPLOY_HOST: ""          # Bamboo 变量中填写服务器 IP
+  DEPLOY_USER: root
+  DEPLOY_PATH: /opt/stock-algorithm
+  DOCKER_NETWORK: stock-net
+  # 敏感项请在 Bamboo Secret Variables 配置:
+  # BLADER_DB_PASSWORD, REDIS_PASSWORD, MULTI_FACTOR_API_KEY, DOCKER_PASSWORD

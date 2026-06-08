@@ -150,6 +150,40 @@ def _wide_upsert_sql() -> str:
 
 
 _BAOSTOCK_OVERWRITE_COLS = ("close", "pe_ttm", "pb_mrq", "ps_ttm", "pcf_ncf_ttm")
+_BAOSTOCK_EXTRAS_OVERWRITE_COLS = (
+    "float_cap",
+    "total_cap",
+    "is_st",
+    "is_suspended",
+    "turnover_20d",
+)
+
+
+def upsert_wide_extras_overwrite(engine, records: list[dict], chunk_size: int = 1000) -> int:
+    """BaoStock 扩展字段增量覆盖写入 factor_data_wide。"""
+    if not records:
+        return 0
+    col_list = ", ".join(f"`{c}`" for c in _BAOSTOCK_EXTRAS_OVERWRITE_COLS)
+    val_list = ", ".join(f":{c}" for c in _BAOSTOCK_EXTRAS_OVERWRITE_COLS)
+    updates = [f"`{c}` = VALUES(`{c}`)" for c in _BAOSTOCK_EXTRAS_OVERWRITE_COLS]
+    updates.append("update_time = NOW()")
+    sql = f"""
+    INSERT INTO `{WIDE_TABLE}` (
+      data_date, stock_code, {col_list}, update_time
+    ) VALUES (
+      :data_date, :stock_code, {val_list}, NOW()
+    )
+    ON DUPLICATE KEY UPDATE {", ".join(updates)}
+    """
+    from sqlalchemy import text
+
+    n = 0
+    for i in range(0, len(records), chunk_size):
+        chunk = records[i : i + chunk_size]
+        with engine.begin() as conn:
+            conn.execute(text(sql), chunk)
+        n += len(chunk)
+    return n
 
 
 def upsert_wide_baostock_overwrite(engine, records: list[dict], chunk_size: int = 1000) -> int:

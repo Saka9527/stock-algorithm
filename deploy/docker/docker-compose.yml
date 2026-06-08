@@ -1,0 +1,51 @@
+# 生产部署：与服务器现有容器同网段互通
+# 用法见 deploy/README.md
+
+services:
+  stock-algorithm-api:
+    image: ${DOCKER_REGISTRY:-10.8.0.1:90}/stock-service-api/stock-algorithm:${IMAGE_TAG:-latest}
+    container_name: stock-algorithm-api
+    hostname: stock-algorithm-api
+    restart: unless-stopped
+    ports:
+      - "${HOST_PORT:-8032}:8000"
+    environment:
+      API_HOST: "0.0.0.0"
+      API_PORT: "8000"
+      IFIND_CONFIG_PATH: /app/config/ifind_config.docker.yaml
+      BLADER_DB_HOST: ${BLADER_DB_HOST:-117.25.133.3}
+      BLADER_DB_PORT: ${BLADER_DB_PORT:-3306}
+      BLADER_DB_NAME: ${BLADER_DB_NAME:-blader}
+      BLADER_DB_USER: ${BLADER_DB_USER:-stock-dev}
+      BLADER_DB_PASSWORD: ${BLADER_DB_PASSWORD:?set BLADER_DB_PASSWORD}
+      REDIS_HOST: ${REDIS_HOST:-117.25.133.3}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      REDIS_DATABASE: ${REDIS_DATABASE:-1}
+      MULTI_FACTOR_API_KEY: ${MULTI_FACTOR_API_KEY:-}
+      API_CORS_ORIGINS: ${API_CORS_ORIGINS:-*}
+    volumes:
+      - stock-algorithm-data:/app/data
+      - stock-algorithm-output:/app/output
+    networks:
+      - stock-net
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+volumes:
+  stock-algorithm-data:
+  stock-algorithm-output:
+
+networks:
+  stock-net:
+    external: true
+    name: ${DOCKER_NETWORK:-stock-net}
